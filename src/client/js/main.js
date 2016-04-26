@@ -1,31 +1,16 @@
-<!doctype html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8" />
-    <title>Phaser - Making your first game, part 8</title>
-    <script src="//cdn.jsdelivr.net/phaser/2.2.2/phaser.min.js"></script>
-    <style type="text/css">
-        body {
-            margin: 0;
-        }
-    </style>
-</head>
-<body>
-
-<script type="text/javascript">
-
+console.log('SANITY');
 var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
 
 function preload() {
 
-    game.load.image('sky', 'assets/MarioLevelBackground.png');
-    game.load.image('ground', 'assets/ground.png');
-    game.load.image('star', 'assets/star.png');
-		game.load.image('box', 'assets/ledge2.png');
-		game.load.image('littlebox', 'assets/box.png');
-		game.load.image('pipe', 'assets/pipe2.png');
-		game.load.image('bullet', 'assets/bullet2.png')
-    game.load.spritesheet('dude', 'assets/MegaManWholeTest.png', 42, 49);
+    game.load.image('sky', '../assets/MarioLevelBackground.png');
+    game.load.image('ground', '../assets/ground.png');
+    game.load.image('star', '../assets/star.png');
+		game.load.image('box', '../assets/ledge2.png');
+		game.load.image('littlebox', '../assets/box.png');
+		game.load.image('pipe', '../assets/pipe2.png');
+		game.load.image('bullet', '../assets/bullet2.png')
+    game.load.spritesheet('dude', '../assets/MegaManWholeTest.png', 42, 49);
 		// game.load.spritesheet('dudejump', 'assets/MegaManTestJump.png', 39, 61);
 
 }
@@ -219,8 +204,3 @@ function render() {
     game.debug.spriteInfo(player, 32, 450);
 
 }
-
-</script>
-
-</body>
-</html>

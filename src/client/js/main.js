@@ -1,106 +1,125 @@
 console.log('SANITY');
-var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+var game = new Phaser.Game(800, 600, Phaser.AUTO, 'game');
 
-function preload() {
-
-    game.load.image('sky', '../assets/MarioLevelBackground.png');
-    game.load.image('ground', '../assets/ground.png');
-    game.load.image('star', '../assets/star.png');
-		game.load.image('box', '../assets/ledge2.png');
-		game.load.image('littlebox', '../assets/box.png');
-		game.load.image('pipe', '../assets/pipe2.png');
-		game.load.image('bullet', '../assets/bullet2.png')
-    game.load.spritesheet('dude', '../assets/MegaManWholeTest.png', 42, 49);
-		// game.load.spritesheet('dudejump', 'assets/MegaManTestJump.png', 39, 61);
-
+var MarioGame = function() {
+  this.player1 = null;
+  this.player2 = null;
+  this.platforms;
+  this.cursors;
+  this.bullets;
+  this.stars;
+  this.score = 0;
+  this.scoreText;
+  this.pOneHealth = 100;
+  this.pOneHealthText;
+  this.pTwoHealth = 100;
+  this.pTwoHealthText;
+  this.fireButton;
+  this.fireRate = 100;
+  this.nextFire = 0;
 }
 
-var player;
-var platforms;
-var cursors;
-var bullets;
+MarioGame.prototype = {
+  init: function () {
+    this.game.renderer.renderSession.roundPixels = true;
+    this.physics.startSystem(Phaser.Physics.ARCADE);
+  },
 
-var stars;
-var score = 0;
-var scoreText;
-var fireRate = 100;
-var nextFire = 0;
-
-function create() {
-
-    //  We're going to be using physics, so enable the Arcade Physics system
-    game.physics.startSystem(Phaser.Physics.ARCADE);
-
-    //  A simple background for our game
-    game.add.sprite(0, 0, 'sky');
-
-    //  The platforms group contains the ground and the 2 ledges we can jump on
-    platforms = game.add.group();
+  preload: function() {
+    this.load.image('sky', 'assets/marioLevel/MarioLevelBackground.png');
+    this.load.image('ground', 'assets/marioLevel/ground.png');
+    this.load.image('star', 'assets/marioLevel/star.png');
+		this.load.image('box', 'assets/marioLevel/ledge2.png');
+		this.load.image('littlebox', 'assets/marioLevel/box.png');
+		this.load.image('pipe', 'assets/marioLevel/pipe2.png');
+		this.load.image('bullet', 'assets/weapons/bullet2.png')
+    this.load.spritesheet('dude', 'assets/sprites/MegaManWholeTest.png', 42, 49);
+    this.load.spritesheet('mario', 'assets/sprites/mariosprite.png', 21, 35);
+  },
+  create: function() {
+    this.add.sprite(0, 0, 'sky');
+    this.platforms = this.add.group();
 
     //  We will enable physics for any object that is created in this group
-    platforms.enableBody = true;
+    this.platforms.enableBody = true;
 
     // Here we create the ground.
-    var ground = platforms.create(0, game.world.height - 64, 'ground');
-
-    //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
-    // ground.scale.setTo(2, 2);
+    var ground = this.platforms.create(0, this.world.height - 64, 'ground');
 
     //  This stops it from falling away when you jump on it
     ground.body.immovable = true;
 
-    //  Now let's create two ledges
-    var ledge = platforms.create(250, 350, 'box');
+    var ledge = this.platforms.create(250, 350, 'box');
     ledge.body.immovable = true;
 
-    ledge = platforms.create(100, 350, 'littlebox');
+    ledge = this.platforms.create(100, 350, 'littlebox');
     ledge.body.immovable = true;
 
-		ledge = platforms.create(350, 200, 'littlebox');
+		ledge = this.platforms.create(350, 200, 'littlebox');
     ledge.body.immovable = true;
 
-		ledge = platforms.create(580, 450, 'pipe');
+		ledge = this.platforms.create(580, 450, 'pipe');
     ledge.body.immovable = true;
 
-    // The player and its settings
-    player = game.add.sprite(32, game.world.height - 150, 'dude');
+    // The player1 and its settings
+    this.player1 = this.add.sprite(32, this.world.height - 150, 'dude');
+    this.player2 = this.add.sprite(300, this.world.height - 350, 'mario');
 
-    //  We need to enable physics on the player
-    // game.physics.arcade.enable(player, Phaser.Physics.ARCADE);
-		player.anchor.set(0.5);
+    //  We need to enable physics on the player1
+		this.player1.anchor.set(0.5);
+    this.player2.anchor.set(0.5);
 
-    game.physics.enable(player, Phaser.Physics.ARCADE);
+    this.physics.enable(this.player1, Phaser.Physics.ARCADE);
+    this.physics.enable(this.player2, Phaser.Physics.ARCADE);
 
     //  Player physics properties. Give the little guy a slight bounce.
-    player.body.bounce.y = 0.2;
-    player.body.gravity.y = 300;
-    player.body.collideWorldBounds = true;
+    this.player1.body.bounce.y = 0.2;
+    this.player1.body.gravity.y = 300;
+    this.player1.body.collideWorldBounds = true;
 
-    //  Our two animations, walking left and right.
-    player.animations.add('left', [0, 1, 2, 3], 20, true);
-    player.animations.add('right', [6, 7, 8, 9], 20, true);
-		player.animations.add('jump', [10], 20, true);
-		player.animations.add('jumpdown', [18], 20, true);
+    this.player2.body.bounce.y = 0.2;
+    this.player2.body.gravity.y = 300;
+    this.player2.body.collideWorldBounds = true;
 
-		bullets = game.add.group();
-    bullets.enableBody = true;
-    bullets.physicsBodyType = Phaser.Physics.ARCADE;
+    //  Character one Movement
+    this.player1.animations.add('left', [0, 1, 2, 3], 20, true);
+    this.player1.animations.add('right', [6, 7, 8, 9], 20, true);
+		this.player1.animations.add('jump', [10], 20, true);
+		this.player1.animations.add('jumpdown', [18], 20, true);
+    // Character two movement
+    this.player2.animations.add('left', [0, 1, 2, 3, 4], 11, true);
+    this.player2.animations.add('turn', [4], 20, true);
+    this.player2.animations.add('right', [7, 8, 9, 10, 11], 11, true);
 
-    bullets.createMultiple(50, 'bullet');
-    bullets.setAll('checkWorldBounds', true);
-    bullets.setAll('outOfBoundsKill', true);
+    this.pOneHealthText = game.add.text(16, 16, 'Player 1 Health: 100', {
+      fontSize: '32px',
+      fill: '#000'
+    })
+
+    this.pTwoHealthText = game.add.text(16, 48, 'Player 2 Health: 100', {
+      fontSize: '32px',
+      fill: '#000'
+    })
+
+		this.bullets = this.add.group();
+    this.bullets.enableBody = true;
+    this.bullets.physicsBodyType = Phaser.Physics.ARCADE;
+
+    this.bullets.createMultiple(50, 'bullet');
+    this.bullets.setAll('checkWorldBounds', true);
+    this.bullets.setAll('outOfBoundsKill', true);
 
     //  Finally some stars to collect
-    stars = game.add.group();
+    this.stars = this.add.group();
 
     //  We will enable physics for any star that is created in this group
-    stars.enableBody = true;
+    this.stars.enableBody = true;
 
     //  Here we'll create 12 of them evenly spaced apart
     for (var i = 0; i < 12; i++)
     {
         //  Create a star inside of the 'stars' group
-        var star = stars.create(i * 70, 0, 'star');
+        var star = this.stars.create(i * 70, 0, 'star');
 
         //  Let gravity do its thing
         star.body.gravity.y = 300;
@@ -110,97 +129,107 @@ function create() {
     }
 
 		//  The score
-    scoreText = game.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+    // this.scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
 
     //  Our controls.
-    cursors = game.input.keyboard.createCursorKeys();
-		fireButton = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+    this.cursors = this.input.keyboard.createCursorKeys();
+		this.fireButton = this.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+    this.A = this.input.keyboard.addKey(Phaser.Keyboard.A);
+    this.D = this.input.keyboard.addKey(Phaser.Keyboard.D);
+    this.W = this.input.keyboard.addKey(Phaser.Keyboard.W);
+  },
+  update: function() {
+    //  Collide the player1 and the stars with the platforms
+    this.physics.arcade.collide(this.player1, this.platforms);
+    this.physics.arcade.collide(this.stars, this.platforms);
 
-}
+    //  Checks to see if the player1 overlaps with any of the stars, if he does call the collectStar function
+    this.physics.arcade.overlap(this.player1, this.stars, this.collectStar, null, this);
 
-function update() {
+    //  Reset the player1s velocity (movement)
+    this.player1.body.velocity.x = 0;
 
-    //  Collide the player and the stars with the platforms
-    game.physics.arcade.collide(player, platforms);
-    game.physics.arcade.collide(stars, platforms);
-
-    //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
-    game.physics.arcade.overlap(player, stars, collectStar, null, this);
-
-    //  Reset the players velocity (movement)
-    player.body.velocity.x = 0;
-
-    if (cursors.left.isDown)
+    if (this.cursors.left.isDown)
     {
         //  Move to the left
-        player.body.velocity.x = -150;
-
-        player.animations.play('left');
+        this.player1.body.velocity.x = -150;
+        this.player1.animations.play('left');
     }
-		else if(cursors.up.isDown)
-		{
-			player.animations.play('jump');
-		}
-		else if(cursors.down.isDown)
-		{
-			player.animations.play('jumpdown');
-		}
-    else if (cursors.right.isDown)
+    else if (this.cursors.right.isDown)
     {
         //  Move to the right
-        player.body.velocity.x = 150;
-
-        player.animations.play('right');
+        this.player1.body.velocity.x = 150;
+        this.player1.animations.play('right');
     }
-		else if(fireButton.isDown)
+		else if(this.cursors.up.isDown)
 		{
-			fire();
+			this.player1.animations.play('jump');
+		}
+		else if(this.cursors.down.isDown)
+		{
+			this.player1.animations.play('jumpdown');
 		}
     else
     {
         //  Stand still
-        player.animations.stop();
-
-        player.frame = 5;
+        this.player1.animations.stop();
+        this.player1.frame = 5;
     }
-
-    //  Allow the player to jump if they are touching the ground.
-    if (cursors.up.isDown && player.body.touching.down)
+    if(this.fireButton.isDown)
+		{
+			this.fire();
+		}
+    //  Allow the player1 to jump if they are touching the ground.
+    if (this.cursors.up.isDown && this.player1.body.touching.down)
     {
-        player.body.velocity.y = -350;
+        this.player1.body.velocity.y = -350;
     }
 
-}
+    //Player 2 motions
+    this.physics.arcade.collide(this.player2, this.platforms);
 
-function collectStar (player, star) {
+    this.player2.body.velocity.x = 0;
 
+    if (this.A.isDown) {
+      this.player2.body.velocity.x = -150;
+      this.player2.animations.play('left');
+    }
+    else if (this.D.isDown) {
+      this.player2.body.velocity.x = 150;
+      this.player2.animations.play('right');
+    } else {
+      this.player2.animations.stop();
+      this.player2.frame = 5;
+    }
+
+    // Conditional for jumping (P2)
+    if (this.W.isDown) {
+      this.player2.body.velocity.y = -350;
+    }
+
+
+  },
+  collectStar: function(player1, star) {
     // Removes the star from the screen
     star.kill();
 
 		//  Add and update the score
-    score += 10;
-    scoreText.text = 'Score: ' + score;
-
-}
-
-function fire() {
-
-    if (game.time.now > nextFire && bullets.countDead() > 0)
+    this.score += 10;
+    // this.scoreText.text = 'Score: ' + this.score;
+  },
+  fire: function() {
+    if (this.time.now > this.nextFire && this.bullets.countDead() > 0)
     {
-        nextFire = game.time.now + fireRate;
+        this.nextFire = this.time.now + this.fireRate;
 
-        var bullet = bullets.getFirstDead();
+        var bullet = this.bullets.getFirstDead();
 
-        bullet.reset(player.x, player.y);
+        bullet.reset(this.player1.x, this.player1.y);
 
-        game.physics.arcade.moveToXY(bullet, 500, 500, 400);
+        this.physics.arcade.moveToXY(bullet, 500, 500, 400);
     }
-
+  }
 }
 
-function render() {
-
-    game.debug.text('Active Bullets: ' + bullets.countLiving() + ' / ' + bullets.total, 32, 32);
-    game.debug.spriteInfo(player, 32, 450);
-
-}
+// Call game
+game.state.add('Game', MarioGame, true);
